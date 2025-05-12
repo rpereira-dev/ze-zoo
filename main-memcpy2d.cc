@@ -34,6 +34,10 @@
 # include <ze_api.h>
 # include "logger-ze.h"
 
+// If '1', then uses region offset-x in the copy
+// else if '0', then manually offset the pointer
+# define USING_OFFSET 1
+
 // 2d region size
 # define REGION_SX 512
 # define REGION_SY 512
@@ -98,7 +102,8 @@ copy(
     unsigned int i,
     void * dst, const void * src,
     const size_t dst_pitch, const size_t src_pitch,
-    uint32_t width, uint32_t height
+    uint32_t width, uint32_t height,
+    uint32_t dst_ox, uint32_t src_ox
 ) {
     ze_event_handle_t event = events[i];
     ZE_SAFE_CALL(zeEventHostReset(event));
@@ -110,21 +115,21 @@ copy(
     const uint32_t src_slice_pitch = 0;
 
     const ze_copy_region_t dst_region = {
-        .originX = 0,
+        .originX = dst_ox,
         .originY = 0,
         .originZ = 0,
         .width   = (uint32_t) width,
         .height  = (uint32_t) height,
-        .depth   = 1
+        .depth   = 0
     };
 
     const ze_copy_region_t src_region = {
-        .originX = 0,
+        .originX = src_ox,
         .originY = 0,
         .originZ = 0,
         .width   = (uint32_t) width,
         .height  = (uint32_t) height,
-        .depth   = 1
+        .depth   = 0
     };
 
     ZE_SAFE_CALL(
@@ -263,8 +268,22 @@ main(int argc, char ** argv)
     // Enqueue 2D copies in the immediate queue H2D
     for (unsigned int i = 0 ; i < N_TILES ; ++i)
     {
+        # if USING_OFFSET
+        const uint32_t dst_ox = 0;
+        const uint32_t src_ox = i * REGION_SX * sizeof(TYPE);
+
+              void * dst    = (      void *) dev_mem[i];
+        const void * src    = (const void *) hst_mem;
+
+        # else
+
+        const uint32_t dst_ox = 0;
+        const uint32_t src_ox = 0;
+
               void * dst    = (      void *) dev_mem[i];
         const void * src    = (const void *) (hst_mem + i * REGION_SX);
+
+        # endif
 
         const size_t dst_pitch =           REGION_SX * sizeof(TYPE);
         const size_t src_pitch = N_TILES * REGION_SX * sizeof(TYPE);
@@ -272,7 +291,7 @@ main(int argc, char ** argv)
         const size_t width  = REGION_SX * sizeof(TYPE);
         const size_t height = REGION_SY;
 
-        copy(i, dst, src, dst_pitch, src_pitch, width, height);
+        copy(i, dst, src, dst_pitch, src_pitch, width, height, dst_ox, src_ox);
 
     } /* launch */
 
@@ -289,8 +308,23 @@ main(int argc, char ** argv)
     // D2H - Retrieve memory from device, for the last tile
     for (unsigned int i = 0 ; i < N_TILES ; ++i)
     {
+        # if USING_OFFSET
+
+        const uint32_t dst_ox = i * REGION_SX * sizeof(TYPE);
+        const uint32_t src_ox = 0;
+
+              void * dst    = (      void *) dev_mem[i];
+        const void * src    = (const void *) hst_mem;
+
+        # else
+
+        const uint32_t dst_ox = 0;
+        const uint32_t src_ox = 0;
+
               void * dst    = (      void *) (hst_mem + i * REGION_SX);
         const void * src    = (const void *) (dev_mem[i]);
+
+        # endif
 
         const size_t dst_pitch = N_TILES * REGION_SX * sizeof(TYPE);
         const size_t src_pitch =           REGION_SX * sizeof(TYPE);
@@ -298,7 +332,7 @@ main(int argc, char ** argv)
         const size_t width  = REGION_SX * sizeof(TYPE);
         const size_t height = REGION_SY;
 
-        copy(i, dst, src, dst_pitch, src_pitch, width, height);
+        copy(i, dst, src, dst_pitch, src_pitch, width, height, dst_ox, src_ox);
     } /* launch */
 
     wait();
