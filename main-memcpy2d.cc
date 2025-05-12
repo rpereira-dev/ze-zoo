@@ -267,7 +267,7 @@ main(int argc, char ** argv)
         const void * src    = (const void *) (hst_mem + i * REGION_SX * REGION_SY);
 
         const size_t dst_pitch =           REGION_SX * sizeof(TYPE);
-        const size_t src_pitch = REGION_SX * sizeof(TYPE);
+        const size_t src_pitch = N_TILES * REGION_SX * sizeof(TYPE);
 
         const size_t width  = REGION_SX * sizeof(TYPE);
         const size_t height = REGION_SY;
