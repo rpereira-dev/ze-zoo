@@ -264,7 +264,7 @@ main(int argc, char ** argv)
     for (unsigned int i = 0 ; i < N_TILES ; ++i)
     {
               void * dst    = (      void *) dev_mem[i];
-        const void * src    = (const void *) (hst_mem + i * REGION_SX * REGION_SY);
+        const void * src    = (const void *) (hst_mem + i * REGION_SX);
 
         const size_t dst_pitch =           REGION_SX * sizeof(TYPE);
         const size_t src_pitch = N_TILES * REGION_SX * sizeof(TYPE);
@@ -289,7 +289,7 @@ main(int argc, char ** argv)
     // D2H - Retrieve memory from device, for the last tile
     for (unsigned int i = 0 ; i < N_TILES ; ++i)
     {
-              void * dst    = (      void *) (hst_mem + i * REGION_SX * REGION_SY);
+              void * dst    = (      void *) (hst_mem + i * REGION_SX);
         const void * src    = (const void *) (dev_mem[i]);
 
         const size_t dst_pitch = N_TILES * REGION_SX * sizeof(TYPE);
